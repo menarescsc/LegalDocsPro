@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="LegalDocsPro.Api/LegalDocsPro.Api.csproj" />
+  <Project Path="LegalDocsPro.Application/LegalDocsPro.Application.csproj" />
+  <Project Path="LegalDocsPro.Domain/LegalDocsPro.Domain.csproj" />
+  <Project Path="LegalDocsPro.Infrastructure/LegalDocsPro.Infrastructure.csproj" />
+</Solution>
