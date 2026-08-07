@@ -14,8 +14,6 @@
   <ItemGroup>
     <Folder Include="Identity\" />
     <Folder Include="Persistence\Configurations\" />
-    <Folder Include="Persistence\Contexts\" />
-    <Folder Include="Persistence\Repositories\" />
   </ItemGroup>
 
   <ItemGroup>
