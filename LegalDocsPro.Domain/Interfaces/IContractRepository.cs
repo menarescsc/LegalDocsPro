@@ -9,5 +9,7 @@ namespace LegalDocsPro.Domain.Interfaces
         Task AddAsync(Contract contract);
         void Update(Contract contract);
         // No ponemos 'Delete' porque en sistemas legales no se borra, se cambia el estado a 'Cancelado'.
+
+        Task SaveChangesAsync();
     }
 }

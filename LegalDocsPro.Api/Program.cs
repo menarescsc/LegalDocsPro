@@ -15,6 +15,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Usamos AddScoped para que se cree una instancia por cada petición HTTP
 builder.Services.AddScoped<IContractRepository, ContractRepository>();
 
+// Registrar MediatR escaneando el ensamblado de la capa de Aplicación
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(LegalDocsPro.Application.Features.Contracts.Commands.CreateContractCommand).Assembly));
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -29,6 +33,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
+// Redirigir la ruta raíz a Swagger
+app.MapGet("/", () => Results.Redirect("/swagger"));
+
 app.MapControllers();
 
 app.Run();
