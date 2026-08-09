@@ -1,4 +1,5 @@
 ﻿using LegalDocsPro.Application.Features.Contracts.Commands;
+using LegalDocsPro.Application.Features.Contracts.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,6 +24,21 @@ namespace LegalDocsPro.Api.Controllers
             var contractId = await _mediator.Send(command);
 
             return CreatedAtAction(nameof(CreateContract), new { id = contractId }, contractId);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetContractById(int id)
+        {
+            // Construimos la pregunta (Query)
+            var query = new GetContractByIdQuery(id);
+
+            // MediatR busca automáticamente al Handler para que haga el trabajo
+            var result = await _mediator.Send(query);
+
+            if (result == null)
+                return NotFound($"No se encontró el contrato con el ID {id}.");
+
+            return Ok(result);
         }
     }
 }

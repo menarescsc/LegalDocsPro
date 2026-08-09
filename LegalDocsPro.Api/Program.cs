@@ -1,6 +1,10 @@
+using FluentValidation;
+using LegalDocsPro.Api.Middlewares;
+using LegalDocsPro.Application.Common.Behaviours;
 using LegalDocsPro.Domain.Interfaces;
 using LegalDocsPro.Infrastructure.Persistence.Contexts;
 using LegalDocsPro.Infrastructure.Persistence.Repositories;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,18 +16,30 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
 // 2. Inyección de Dependencias: Repositorios
-// Usamos AddScoped para que se cree una instancia por cada petición HTTP
 builder.Services.AddScoped<IContractRepository, ContractRepository>();
 
-// Registrar MediatR escaneando el ensamblado de la capa de Aplicación
-builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssembly(typeof(LegalDocsPro.Application.Features.Contracts.Commands.CreateContractCommand).Assembly));
+// 3. Configurar MediatR y FluentValidation (NUEVO)
+var applicationAssembly = typeof(LegalDocsPro.Application.Features.Contracts.Commands.CreateContractCommand).Assembly;
+
+builder.Services.AddMediatR(cfg => {
+    cfg.RegisterServicesFromAssembly(applicationAssembly);
+    // Agregamos el guardia de seguridad al pipeline de MediatR
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
+});
+
+// Registramos todos los validadores que existan en la capa de Aplicación
+builder.Services.AddValidatorsFromAssembly(applicationAssembly);
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// 4. Activar nuestro Middleware atrapador de errores (NUEVO)
+// Debe ir al principio para que atrape los errores de todo lo que sigue abajo
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -38,5 +54,4 @@ app.UseAuthorization();
 app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.MapControllers();
-
 app.Run();
