@@ -12,6 +12,8 @@ namespace LegalDocsPro.Infrastructure.Persistence.Contexts
 
         // Representa nuestra tabla Contracts en SQL Server
         public DbSet<Contract> Contracts { get; set; }
+        public DbSet<Role> Roles { get; set; } // NUEVO
+        public DbSet<User> Users { get; set; } // NUEVO
 
         // Aquí interceptamos el guardado para llenar los campos de auditoría automáticamente
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
