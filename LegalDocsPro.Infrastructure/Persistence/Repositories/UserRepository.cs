@@ -16,9 +16,11 @@ namespace LegalDocsPro.Infrastructure.Persistence.Repositories
 
         public async Task<User?> GetByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            // Agregamos Include(u => u.Role) para traer los datos del rol asociado
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email == email);
         }
-
         public async Task AddAsync(User user)
         {
             await _context.Users.AddAsync(user);
