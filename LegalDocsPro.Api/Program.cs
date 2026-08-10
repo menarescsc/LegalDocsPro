@@ -18,6 +18,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 2. Inyección de Dependencias: Repositorios
 builder.Services.AddScoped<IContractRepository, ContractRepository>();
 
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 // 3. Configurar MediatR y FluentValidation (NUEVO)
 var applicationAssembly = typeof(LegalDocsPro.Application.Features.Contracts.Commands.CreateContractCommand).Assembly;
 
