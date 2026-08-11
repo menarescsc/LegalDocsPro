@@ -1,11 +1,13 @@
 ﻿using LegalDocsPro.Application.Features.Contracts.Commands;
 using LegalDocsPro.Application.Features.Contracts.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalDocsPro.Api.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class ContractsController : ControllerBase
     {
