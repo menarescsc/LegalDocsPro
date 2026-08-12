@@ -27,7 +27,13 @@ namespace LegalDocsPro.Infrastructure.Persistence.Repositories
 
         public async Task AddAsync(Contract contract)
         {
+            // 1. Agrega la entidad a la memoria de seguimiento (Tracker)
             await _context.Contracts.AddAsync(contract);
+
+            // 2. CONFIRMA LOS CAMBIOS EN SQL SERVER (Esta es la línea que suele faltar)
+            await _context.SaveChangesAsync();
+
+            // 3. Entity Framework actualiza automáticamente el contract.Id con el nuevo número
         }
 
         public void Update(Contract contract)
