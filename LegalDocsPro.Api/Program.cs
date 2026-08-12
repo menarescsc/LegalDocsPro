@@ -12,6 +12,8 @@ using LegalDocsPro.Application.Common.Interfaces;
 using LegalDocsPro.Infrastructure.Authentication;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using LegalDocsPro.Application.Common.Interfaces;
+using LegalDocsPro.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +29,12 @@ builder.Services.AddScoped<IContractRepository, ContractRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+
+// Permite acceder al contexto HTTP (Request, Headers, etc.)
+builder.Services.AddHttpContextAccessor();
+
+// Registra nuestro servicio
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // 3. Configurar MediatR y FluentValidation (NUEVO)
 var applicationAssembly = typeof(LegalDocsPro.Application.Features.Contracts.Commands.CreateContractCommand).Assembly;
