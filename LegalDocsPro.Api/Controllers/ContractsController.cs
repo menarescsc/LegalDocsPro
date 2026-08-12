@@ -50,5 +50,59 @@ namespace LegalDocsPro.Api.Controllers
             var result = await _mediator.Send(query);
             return Ok(result);
         }
+        [HttpPatch("{id}/send-to-review")]
+        public async Task<IActionResult> SendToReview(int id)
+        {
+            try
+            {
+                await _mediator.Send(new SendContractToReviewCommand(id));
+                return NoContent(); // 204: Todo salió bien y no hay nada que devolver
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Si la regla de negocio de la entidad falla, devolvemos un 400 Bad Request con el mensaje
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+        [HttpPatch("{id}/Approve")]
+        public async Task<IActionResult> Approve(int id)
+        {
+            try
+            {
+                await _mediator.Send(new ContractApproveCommand(id));
+                return NoContent(); // 204: Todo salió bien y no hay nada que devolver
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Si la regla de negocio de la entidad falla, devolvemos un 400 Bad Request con el mensaje
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+        [HttpPatch("{id}/Activate")]
+        public async Task<IActionResult> Activate(int id)
+        {
+            try
+            {
+                await _mediator.Send(new ContractActivateCommand(id));
+                return NoContent(); // 204: Todo salió bien y no hay nada que devolver
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Si la regla de negocio de la entidad falla, devolvemos un 400 Bad Request con el mensaje
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
     }
 }
