@@ -39,5 +39,30 @@ namespace LegalDocsPro.Infrastructure.Persistence.Repositories
         {
             await _context.SaveChangesAsync();
         }
+
+        public async Task<(IEnumerable<Contract> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm)
+        {
+            // 1. Empezamos con la consulta base (sin ejecutarla aún)
+            var query = _context.Contracts.AsQueryable();
+
+            // 2. Aplicamos el filtro si el usuario escribió algo a buscar
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                // Busca coincidencias en el título o descripción
+                query = query.Where(c => c.Title.Contains(searchTerm) || c.Description.Contains(searchTerm));
+            }
+
+            // 3. Contamos cuántos registros hay en total (después de filtrar)
+            var totalCount = await query.CountAsync();
+
+            // 4. Aplicamos la paginación (Skip y Take) y ordenamos por los más recientes
+            var items = await query
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
     }
 }
