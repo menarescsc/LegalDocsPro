@@ -42,5 +42,13 @@ namespace LegalDocsPro.Api.Controllers
 
             return Ok(result);
         }
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetPaged([FromQuery] GetContractsWithPaginationQuery query)
+        {
+            // Gracias a [FromQuery], la API tomará los valores de la URL:
+            // Ejemplo: /api/Contracts/paged?pageNumber=1&pageSize=5&searchTerm=arriendo
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
     }
 }

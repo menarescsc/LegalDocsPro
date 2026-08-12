@@ -10,6 +10,11 @@ namespace LegalDocsPro.Domain.Interfaces
         void Update(Contract contract);
         // No ponemos 'Delete' porque en sistemas legales no se borra, se cambia el estado a 'Cancelado'.
 
+        // Debajo de los métodos que ya tienes...
+        Task<(IEnumerable<Contract> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm);
+
         Task SaveChangesAsync();
+
+
     }
 }
