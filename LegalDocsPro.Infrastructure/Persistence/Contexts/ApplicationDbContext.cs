@@ -1,4 +1,5 @@
-﻿using LegalDocsPro.Domain.Common;
+﻿using LegalDocsPro.Application.Common.Interfaces;
+using LegalDocsPro.Domain.Common;
 using LegalDocsPro.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,58 +7,42 @@ namespace LegalDocsPro.Infrastructure.Persistence.Contexts
 {
     public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+        private readonly ICurrentUserService _currentUserService;
+
+        // Inyectamos ICurrentUserService en el constructor
+        public ApplicationDbContext(
+            DbContextOptions<ApplicationDbContext> options,
+            ICurrentUserService currentUserService) : base(options)
         {
+            _currentUserService = currentUserService;
         }
 
-        // Representa nuestra tabla Contracts en SQL Server
         public DbSet<Contract> Contracts { get; set; }
-        public DbSet<Role> Roles { get; set; } // NUEVO
-        public DbSet<User> Users { get; set; } // NUEVO
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<User> Users { get; set; }
 
-        // Aquí interceptamos el guardado para llenar los campos de auditoría automáticamente
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+        // Sobrescribimos el método de guardado
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
+            // Recorremos todas las entidades que heredan de BaseEntity y que hayan sido modificadas o agregadas
             foreach (var entry in ChangeTracker.Entries<BaseEntity>())
             {
                 switch (entry.State)
                 {
                     case EntityState.Added:
-                        entry.Entity.CreatedAt = DateTime.UtcNow;
-                        entry.Entity.CreatedBy = "System"; // Más adelante lo conectaremos con JWT
+                        // Usamos .Property().CurrentValue porque las propiedades tienen "protected set"
+                        entry.Property(x => x.CreatedAt).CurrentValue = DateTime.UtcNow;
+                        entry.Property(x => x.CreatedBy).CurrentValue = _currentUserService.UserId ?? "Sistema";
                         break;
+
                     case EntityState.Modified:
-                        entry.Entity.LastModifiedAt = DateTime.UtcNow;
-                        entry.Entity.LastModifiedBy = "System";
+                        entry.Property(x => x.LastModifiedAt).CurrentValue = DateTime.UtcNow;
+                        entry.Property(x => x.LastModifiedBy).CurrentValue = _currentUserService.UserId ?? "Sistema";
                         break;
                 }
             }
 
-            return base.SaveChangesAsync(cancellationToken);
-        }
-
-        // Aquí configuramos Entity Framework para que entienda nuestro Dominio Rico
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<Contract>(entity =>
-            {
-                entity.ToTable("Contracts");
-                entity.HasKey(e => e.Id);
-
-                // Habilitamos las Temporal Tables de SQL Server (Auditoría automática)
-                entity.ToTable(tb => tb.IsTemporal(ttb =>
-                {
-                    ttb.UseHistoryTable("ContractsHistory");
-                    ttb.HasPeriodStart("ValidFrom");
-                    ttb.HasPeriodEnd("ValidTo");
-                }));
-
-                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.DocumentUrl).HasMaxLength(500);
-            });
+            return await base.SaveChangesAsync(cancellationToken);
         }
     }
 }
