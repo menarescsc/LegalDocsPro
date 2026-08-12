@@ -41,6 +41,12 @@ namespace LegalDocsPro.Infrastructure.Persistence.Repositories
             _context.Contracts.Update(contract);
         }
 
+        public async Task UpdateAsync(Contract contract)
+        {
+            _context.Contracts.Update(contract);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
