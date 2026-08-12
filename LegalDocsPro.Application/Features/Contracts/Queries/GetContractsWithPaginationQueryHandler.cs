@@ -21,14 +21,16 @@ namespace LegalDocsPro.Application.Features.Contracts.Queries
 
             // Mapeamos de Entidades (Domain) a DTOs (Application)
             // Mapeamos usando los paréntesis () obligatorios del record
+            // Mapeamos de forma limpia enviando los datos reales
             var dtoList = items.Select(c => new ContractDto(
                 c.Id,
                 c.Title,
                 c.Description,
-                "",           // 4to parámetro (string vacío porque no existe en entidad)
-                "",           // 5to parámetro (string vacío porque no existe en entidad)
-                null,         // 6to parámetro (DateTime? nulo)
-                c.CreatedAt   // 7mo parámetro (DateTime de la clase base)
+                c.ClientName,
+                c.Status.ToString(),  // Convert enum to string
+                c.EffectiveDate,
+                c.ExpirationDate,
+                c.CreatedAt
             )).ToList();
 
             // Devolvemos nuestro objeto paginado

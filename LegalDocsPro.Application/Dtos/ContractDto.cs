@@ -1,12 +1,13 @@
 ﻿namespace LegalDocsPro.Application.Dtos
 {
-    // Usamos 'record' porque los DTOs solo transportan datos, no cambian.
+    // Usamos un record posicional limpio que coincide con la base de datos
     public record ContractDto(
         int Id,
         string Title,
         string Description,
-        string DocumentUrl,
+        string ClientName,
         string Status,
+        DateTime? EffectiveDate,
         DateTime? ExpirationDate,
         DateTime CreatedAt
     );

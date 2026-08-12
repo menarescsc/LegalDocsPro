@@ -8,9 +8,16 @@ namespace LegalDocsPro.Domain.Entities
         // Propiedades privadas o protegidas para el set, obligando a usar constructores o métodos
         public string Title { get; private set; } = string.Empty;
         public string Description { get; private set; } = string.Empty;
+        public string ClientName { get; set; } = string.Empty;
+
+        // 1. ARREGLO: Declaramos la propiedad DocumentUrl que faltaba
         public string DocumentUrl { get; private set; } = string.Empty;
-        public ContractStatus Status { get; private set; }
-        public DateTime? ExpirationDate { get; private set; }
+
+        // 2. ARREGLO: Cambiamos el tipo de string al Enum ContractStatus
+        public ContractStatus Status { get; private set; } = ContractStatus.Draft;
+
+        public DateTime? EffectiveDate { get; set; } // Fecha de inicio (Opcional)
+        public DateTime? ExpirationDate { get; set; } // Fecha de término (Opcional)
 
         // 1. Constructor vacío requerido por Entity Framework Core
         protected Contract() { }
