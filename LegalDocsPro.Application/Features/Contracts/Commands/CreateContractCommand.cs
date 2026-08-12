@@ -2,10 +2,14 @@
 
 namespace LegalDocsPro.Application.Features.Contracts.Commands
 {
-    // IRequest<int> significa que este comando, al finalizar, devolverá el ID (int) del nuevo contrato.
-    public record CreateContractCommand(
-        string Title,
-        string Description,
-        string DocumentUrl,
-        DateTime? ExpirationDate) : IRequest<int>;
+    public class CreateContractCommand : IRequest<int>
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+
+        // Nuevos campos
+        public string ClientName { get; set; } = string.Empty;
+        public string DocumentUrl { get; set; } = string.Empty;
+        public DateTime? ExpirationDate { get; set; }
+    }
 }

@@ -28,10 +28,12 @@ namespace LegalDocsPro.Application.Features.Contracts.Queries
                 contract.Id,
                 contract.Title,
                 contract.Description,
-                contract.DocumentUrl,
-                contract.Status.ToString(), // Convertimos el Enum a texto
+                contract.ClientName,        // Cambiado de DocumentUrl a ClientName
+                contract.DocumentUrl,        // Agregado: DocumentUrl
+                contract.Status.ToString(), // Convertimos el enum a string
+                contract.EffectiveDate,     // Agregado el parámetro faltante
                 contract.ExpirationDate,
-                contract.CreatedAt
+                contract.CreatedAt             // Agregado: CreatedAt
             );
         }
     }

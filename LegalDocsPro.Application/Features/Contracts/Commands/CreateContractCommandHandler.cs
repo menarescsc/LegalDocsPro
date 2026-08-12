@@ -6,28 +6,29 @@ namespace LegalDocsPro.Application.Features.Contracts.Commands
 {
     public class CreateContractCommandHandler : IRequestHandler<CreateContractCommand, int>
     {
-        private readonly IContractRepository _repository;
+        private readonly IContractRepository _contractRepository;
 
-        public CreateContractCommandHandler(IContractRepository repository)
+        public CreateContractCommandHandler(IContractRepository contractRepository)
         {
-            _repository = repository;
+            _contractRepository = contractRepository;
         }
 
         public async Task<int> Handle(CreateContractCommand request, CancellationToken cancellationToken)
         {
-            // 1. Instanciamos la entidad de dominio. 
-            // Recuerda que el constructor ya valida las reglas de negocio básicas.
+            // 1. Usamos el constructor rico que obliga a pasar los datos esenciales
             var contract = new Contract(
                 request.Title,
                 request.Description,
                 request.DocumentUrl,
-                request.ExpirationDate);
+                request.ExpirationDate
+            );
 
-            // 2. Guardamos en la base de datos
-            await _repository.AddAsync(contract);
-            await _repository.SaveChangesAsync();
+            // 2. Asignamos las propiedades adicionales
+            contract.ClientName = request.ClientName;
 
-            // 3. Retornamos el ID autogenerado
+            // 3. Guardamos en base de datos
+            await _contractRepository.AddAsync(contract);
+
             return contract.Id;
         }
     }
