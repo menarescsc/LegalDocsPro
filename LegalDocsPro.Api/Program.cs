@@ -117,6 +117,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseStaticFiles(); // Permite a la API servir archivos físicos como PDFs o imágenes
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
