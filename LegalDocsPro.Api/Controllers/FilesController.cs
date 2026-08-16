@@ -6,21 +6,26 @@ namespace LegalDocsPro.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    // Esta clase obliga a Swagger a mostrar el botón de archivo
+    public class FileUploadRequest
+    {
+        public IFormFile File { get; set; }
+    }
     public class FilesController : ControllerBase
     {
-        private readonly IWebHostEnvironment _environment;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public FilesController(IWebHostEnvironment environment, IHttpContextAccessor httpContextAccessor)
+        public FilesController(IHttpContextAccessor httpContextAccessor)
         {
-            _environment = environment;
             _httpContextAccessor = httpContextAccessor;
         }
 
         [HttpPost("upload")]
-        [Consumes("multipart/form-data")] // <--- 1. ESTO ES VITAL: Obliga a Swagger a formatear bien el archivo
-        public async Task<IActionResult> UploadFile(IFormFile file) // <--- 2. Volvemos al parámetro simple
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadFile([FromForm] FileUploadRequest request) // <--- Ahora recibe la clase
         {
+            var file = request.File; // <--- Extraemos el archivo aquí
+
             try
             {
                 if (file == null || file.Length == 0)
@@ -43,8 +48,8 @@ namespace LegalDocsPro.Api.Controllers
                     await file.CopyToAsync(stream);
                 }
 
-                var request = _httpContextAccessor.HttpContext!.Request;
-                var baseUrl = $"{request.Scheme}://{request.Host}";
+                var requestContext = _httpContextAccessor.HttpContext!.Request;
+                var baseUrl = $"{requestContext.Scheme}://{requestContext.Host}";
                 var fileUrl = $"{baseUrl}/uploads/{uniqueFileName}";
 
                 return Ok(new { url = fileUrl });
