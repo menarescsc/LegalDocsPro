@@ -70,5 +70,17 @@ namespace LegalDocsPro.Api.Controllers
             await _mediator.Send(new ContractActivateCommand(id));
             return NoContent();
         }
+        [HttpPatch("{id}/attach-document")]
+        public async Task<IActionResult> AttachDocument(int id, [FromBody] AttachDocumentRequest request)
+        {
+            await _mediator.Send(new AttachContractDocumentCommand(id, request.DocumentUrl));
+            return NoContent();
+        }
+    }
+
+    // Añade esto fuera de tu controlador o dentro de tu namespace
+    public class AttachDocumentRequest
+    {
+        public string DocumentUrl { get; set; } = string.Empty;
     }
 }

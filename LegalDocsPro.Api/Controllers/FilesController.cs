@@ -9,7 +9,7 @@ namespace LegalDocsPro.Api.Controllers
     // Esta clase obliga a Swagger a mostrar el botón de archivo
     public class FileUploadRequest
     {
-        public IFormFile File { get; set; }
+        public required IFormFile File { get; set; }
     }
     public class FilesController : ControllerBase
     {
