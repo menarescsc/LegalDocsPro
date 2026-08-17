@@ -70,5 +70,17 @@ namespace LegalDocsPro.Domain.Entities
             Title = title;
             Description = description;
         }
+
+        public void AttachDocument(string documentUrl)
+        {
+            // Regla de negocio: Solo podemos adjuntar o cambiar el PDF si el contrato está en Borrador
+            if (Status != ContractStatus.Draft)
+                throw new InvalidOperationException("Solo se pueden adjuntar documentos a contratos en estado Borrador.");
+
+            if (string.IsNullOrWhiteSpace(documentUrl))
+                throw new ArgumentException("La URL del documento es obligatoria.");
+
+            DocumentUrl = documentUrl;
+        }
     }
 }
