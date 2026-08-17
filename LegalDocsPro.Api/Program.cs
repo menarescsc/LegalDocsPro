@@ -105,11 +105,16 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
 
-// 4. Activar nuestro Middleware atrapador de errores (NUEVO)
-// Debe ir al principio para que atrape los errores de todo lo que sigue abajo
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+// 👇 AGREGA ESTO AQUÍ (Preferiblemente bien arriba) 👇
+app.UseExceptionHandler(opt => { });
+
+
 
 if (app.Environment.IsDevelopment())
 {
