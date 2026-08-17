@@ -37,7 +37,7 @@ steps:
 - task: AzureWebApp@1
   displayName: 'Desplegar a Azure App Service'
   inputs:
-    azureSubscription: 'ConexionAzure' # Este nombre lo configuraremos en DevOps en un momento
+    azureSubscription: 'ConexionAzure'
     appType: 'webAppLinux' 
-    appName: 'legaldocspro-api' # Reemplaza esto con el nombre exacto de tu App Service
+    appName: 'EL_NOMBRE_DE_TU_APP_SERVICE' # Mantenlo con el nombre real de tu API
     package: '$(Build.ArtifactStagingDirectory)/**/*.zip'
