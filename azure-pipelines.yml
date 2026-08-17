@@ -39,5 +39,5 @@ steps:
   inputs:
     azureSubscription: 'ConexionAzure'
     appType: 'webAppLinux' 
-    appName: 'EL_NOMBRE_DE_TU_APP_SERVICE' # Mantenlo con el nombre real de tu API
+    appName: 'legaldocspro-api' # Mantenlo con el nombre real de tu API
     package: '$(Build.ArtifactStagingDirectory)/**/*.zip'
