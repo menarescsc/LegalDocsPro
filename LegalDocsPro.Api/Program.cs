@@ -106,6 +106,17 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// 👇 AGREGA ESTA CONFIGURACIÓN DE CORS 👇
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowWebApp", builder =>
+    {
+        builder.AllowAnyOrigin()    // Permite conexiones desde cualquier dominio local (luego en prod se restringe)
+               .AllowAnyHeader()    // Permite enviar cualquier tipo de dato (incluyendo tokens de autorización)
+               .AllowAnyMethod();   // Permite usar GET, POST, PUT, PATCH, DELETE
+    });
+});
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -125,6 +136,9 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles(); // Permite a la API servir archivos físicos como PDFs o imágenes
 
 app.UseHttpsRedirection();
+
+// 👇 ACTIVA CORS AQUÍ (Antes de la Autenticación) 👇
+app.UseCors("AllowWebApp");
 
 app.UseAuthentication();
 app.UseAuthorization();
