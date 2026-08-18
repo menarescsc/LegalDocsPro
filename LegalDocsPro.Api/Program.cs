@@ -127,11 +127,14 @@ app.UseExceptionHandler(opt => { });
 
 
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//}
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseStaticFiles(); // Permite a la API servir archivos físicos como PDFs o imágenes
 
