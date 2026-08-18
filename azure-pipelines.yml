@@ -38,6 +38,5 @@ steps:
   displayName: 'Desplegar a Azure App Service'
   inputs:
     azureSubscription: 'legalconn'
-    appType: 'webAppLinux' 
-    appName: 'legaldocspro-api' # Mantenlo con el nombre real de tu API
+    appName: 'legaldocspro-api' 
     package: '$(Build.ArtifactStagingDirectory)/**/*.zip'
