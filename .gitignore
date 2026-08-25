@@ -361,3 +361,29 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local project tooling and SDD artifacts
+/.atl/
+/openspec/
+
+# Local scripts and database artifacts
+/script.sql
+/LegalDocsPro.Api/script.sql
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded runtime files (not source code)
+*/wwwroot/uploads/
+**/wwwroot/uploads/*
+
+# Local environment files and secrets
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+**/appsettings.*.local.json
+
+# Local logs and diagnostics
+logs/
+**/logs/
