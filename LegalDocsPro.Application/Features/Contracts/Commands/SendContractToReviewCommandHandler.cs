@@ -1,4 +1,5 @@
-﻿using LegalDocsPro.Domain.Interfaces;
+﻿using LegalDocsPro.Application.Common.Interfaces;
+using LegalDocsPro.Domain.Interfaces;
 using MediatR;
 
 namespace LegalDocsPro.Application.Features.Contracts.Commands
@@ -6,24 +7,29 @@ namespace LegalDocsPro.Application.Features.Contracts.Commands
     public class SendContractToReviewCommandHandler : IRequestHandler<SendContractToReviewCommand, bool>
     {
         private readonly IContractRepository _contractRepository;
+        private readonly ICurrentUserService _currentUserService;
 
-        public SendContractToReviewCommandHandler(IContractRepository contractRepository)
+        private const string AdminRole = "Admin";
+
+        public SendContractToReviewCommandHandler(IContractRepository contractRepository, ICurrentUserService currentUserService)
         {
             _contractRepository = contractRepository;
+            _currentUserService = currentUserService;
         }
 
         public async Task<bool> Handle(SendContractToReviewCommand request, CancellationToken cancellationToken)
         {
-            // 1. Buscamos el contrato
             var contract = await _contractRepository.GetByIdAsync(request.Id);
 
             if (contract == null)
-                throw new KeyNotFoundException($"No se encontró el contrato con ID {request.Id}");
+                throw new KeyNotFoundException($"Contract with ID {request.Id} not found.");
 
-            // 2. Ejecutamos la regla de negocio de nuestra entidad (DDD puro)
+            // Ownership check: non-admin users can only mutate their own contracts
+            if (_currentUserService.Role != AdminRole && contract.CreatedBy != _currentUserService.UserId)
+                throw new KeyNotFoundException($"Contract with ID {request.Id} not found.");
+
             contract.SendToReview();
 
-            // 3. Guardamos los cambios
             await _contractRepository.UpdateAsync(contract);
 
             return true;

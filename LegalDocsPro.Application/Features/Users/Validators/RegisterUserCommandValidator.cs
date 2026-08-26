@@ -12,14 +12,11 @@ namespace LegalDocsPro.Application.Features.Users.Validators
 
             RuleFor(x => x.Email)
                 .NotEmpty()
-                .EmailAddress().WithMessage("El formato del correo electrónico no es válido.");
+                .EmailAddress().WithMessage("Invalid email format.");
 
             RuleFor(x => x.Password)
                 .NotEmpty()
-                .MinimumLength(6).WithMessage("La contraseña debe tener al menos 6 caracteres.");
-
-            RuleFor(x => x.RoleId)
-                .GreaterThan(0).WithMessage("Debe asignar un rol válido al usuario.");
+                .MinimumLength(6).WithMessage("Password must be at least 6 characters.");
         }
     }
 }

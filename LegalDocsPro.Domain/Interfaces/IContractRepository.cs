@@ -8,15 +8,17 @@ namespace LegalDocsPro.Domain.Interfaces
         Task<IEnumerable<Contract>> GetAllAsync();
         Task AddAsync(Contract contract);
         void Update(Contract contract);
-        // No ponemos 'Delete' porque en sistemas legales no se borra, se cambia el estado a 'Cancelado'.
 
         Task UpdateAsync(Contract contract);
 
-        // Debajo de los métodos que ya tienes...
         Task<(IEnumerable<Contract> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm);
 
+        /// <summary>
+        /// Paged query with optional owner filter. When ownerId is non-null, only contracts
+        /// created by that user are returned. When null, all contracts are returned (admin view).
+        /// </summary>
+        Task<(IEnumerable<Contract> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm, string? ownerId);
+
         Task SaveChangesAsync();
-
-
     }
 }

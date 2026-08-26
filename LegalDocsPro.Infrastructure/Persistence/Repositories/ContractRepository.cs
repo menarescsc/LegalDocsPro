@@ -16,7 +16,6 @@ namespace LegalDocsPro.Infrastructure.Persistence.Repositories
 
         public async Task<Contract?> GetByIdAsync(int id)
         {
-            // Usamos AsNoTracking() si solo vamos a leer, pero aquí podríamos necesitar modificar el estado luego
             return await _context.Contracts.FindAsync(id);
         }
 
@@ -27,13 +26,8 @@ namespace LegalDocsPro.Infrastructure.Persistence.Repositories
 
         public async Task AddAsync(Contract contract)
         {
-            // 1. Agrega la entidad a la memoria de seguimiento (Tracker)
             await _context.Contracts.AddAsync(contract);
-
-            // 2. CONFIRMA LOS CAMBIOS EN SQL SERVER (Esta es la línea que suele faltar)
             await _context.SaveChangesAsync();
-
-            // 3. Entity Framework actualiza automáticamente el contract.Id con el nuevo número
         }
 
         public void Update(Contract contract)
@@ -54,20 +48,26 @@ namespace LegalDocsPro.Infrastructure.Persistence.Repositories
 
         public async Task<(IEnumerable<Contract> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm)
         {
-            // 1. Empezamos con la consulta base (sin ejecutarla aún)
+            return await GetPagedAsync(pageNumber, pageSize, searchTerm, ownerId: null);
+        }
+
+        public async Task<(IEnumerable<Contract> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm, string? ownerId)
+        {
             var query = _context.Contracts.AsQueryable();
 
-            // 2. Aplicamos el filtro si el usuario escribió algo a buscar
+            // Filter by owner when specified (non-admin users)
+            if (!string.IsNullOrWhiteSpace(ownerId))
+            {
+                query = query.Where(c => c.CreatedBy == ownerId);
+            }
+
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                // Busca coincidencias en el título o descripción
                 query = query.Where(c => c.Title.Contains(searchTerm) || c.Description.Contains(searchTerm));
             }
 
-            // 3. Contamos cuántos registros hay en total (después de filtrar)
             var totalCount = await query.CountAsync();
 
-            // 4. Aplicamos la paginación (Skip y Take) y ordenamos por los más recientes
             var items = await query
                 .OrderByDescending(c => c.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)

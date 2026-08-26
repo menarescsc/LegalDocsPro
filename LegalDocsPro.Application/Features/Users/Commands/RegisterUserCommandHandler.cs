@@ -10,6 +10,9 @@ namespace LegalDocsPro.Application.Features.Users.Commands
     {
         private readonly IUserRepository _userRepository;
 
+        // Default role ID assigned to all self-registered users (prevents privilege escalation)
+        private const int DefaultRoleId = 1;
+
         public RegisterUserCommandHandler(IUserRepository userRepository)
         {
             _userRepository = userRepository;
@@ -17,29 +20,26 @@ namespace LegalDocsPro.Application.Features.Users.Commands
 
         public async Task<int> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
-            // 1. Verificamos si el correo ya existe en la base de datos
+            // 1. Check if email already exists
             var existingUser = await _userRepository.GetByEmailAsync(request.Email);
             if (existingUser != null)
             {
-                // En un caso real crearíamos una excepción personalizada (ej. DuplicateEmailException)
-                // Por simplicidad, lanzaremos una excepción general que atrapará nuestro Middleware
-                throw new Exception("El correo electrónico ya está registrado.");
+                throw new InvalidOperationException("A user with this email address already exists.");
             }
 
-            // 2. Encriptamos la contraseña usando BCrypt
-            // HashPassword genera una "sal" aleatoria automáticamente, haciéndolo muy seguro
+            // 2. Hash password using BCrypt (generates random salt automatically)
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-            // 3. Creamos la entidad de dominio
+            // 3. Create domain entity with server-assigned default role
             var newUser = new User(
                 request.FirstName,
                 request.LastName,
                 request.Email,
                 passwordHash,
-                request.RoleId
+                DefaultRoleId
             );
 
-            // 4. Guardamos en la base de datos
+            // 4. Persist to database
             await _userRepository.AddAsync(newUser);
             await _userRepository.SaveChangesAsync();
 
