@@ -13,7 +13,7 @@ namespace LegalDocsPro.Api.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // Busca el ID del usuario dentro del Token JWT de la petición actual
         public string? UserId => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+        public string? Role => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Role);
     }
 }
