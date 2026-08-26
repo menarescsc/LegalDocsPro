@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalDocsPro.Api.Middlewares
@@ -17,36 +18,72 @@ namespace LegalDocsPro.Api.Middlewares
             Exception exception,
             CancellationToken cancellationToken)
         {
-            // 1. Dejamos un registro en la consola para el desarrollador
-            _logger.LogError(exception, "Error atrapado por el GlobalExceptionHandler");
+            _logger.LogError(exception, "Unhandled exception caught by GlobalExceptionHandler");
 
-            // 2. Preparamos una respuesta estandarizada
-            var problemDetails = new ProblemDetails
+            var problemDetails = exception switch
             {
-                Status = StatusCodes.Status500InternalServerError,
-                Title = "Error interno del servidor",
-                Detail = "Ha ocurrido un error inesperado. Por favor, intente más tarde."
+                ValidationException validationEx => CreateValidationProblemDetails(httpContext, validationEx),
+                UnauthorizedAccessException => CreateProblemDetails(
+                    httpContext,
+                    StatusCodes.Status403Forbidden,
+                    "Forbidden",
+                    "You do not have permission to perform this operation."),
+                KeyNotFoundException => CreateProblemDetails(
+                    httpContext,
+                    StatusCodes.Status404NotFound,
+                    "Not Found",
+                    exception.Message),
+                InvalidOperationException => CreateProblemDetails(
+                    httpContext,
+                    StatusCodes.Status400BadRequest,
+                    "Business Rule Violation",
+                    exception.Message),
+                _ => CreateProblemDetails(
+                    httpContext,
+                    StatusCodes.Status500InternalServerError,
+                    "Internal Server Error",
+                    "An unexpected error occurred. Please try again later.")
             };
 
-            // 3. Traducimos excepciones de negocio a códigos HTTP correctos
-            if (exception is InvalidOperationException)
-            {
-                problemDetails.Status = StatusCodes.Status400BadRequest;
-                problemDetails.Title = "Error de validación o regla de negocio";
-                problemDetails.Detail = exception.Message; // Aquí sí mostramos el error (ej: "El contrato ya está aprobado")
-            }
-            else if (exception is KeyNotFoundException)
-            {
-                problemDetails.Status = StatusCodes.Status404NotFound;
-                problemDetails.Title = "Recurso no encontrado";
-                problemDetails.Detail = exception.Message;
-            }
-
-            // 4. Enviamos la respuesta al cliente
-            httpContext.Response.StatusCode = problemDetails.Status.Value;
+            httpContext.Response.StatusCode = problemDetails.Status!.Value;
             await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
-            return true; // Le decimos a .NET: "Tranquilo, yo me encargo de este error, no colapses"
+            return true;
+        }
+
+        private static ProblemDetails CreateProblemDetails(
+            HttpContext httpContext,
+            int status,
+            string title,
+            string detail)
+        {
+            return new ProblemDetails
+            {
+                Status = status,
+                Title = title,
+                Detail = detail,
+                Instance = httpContext.Request.Path
+            };
+        }
+
+        private static ProblemDetails CreateValidationProblemDetails(
+            HttpContext httpContext,
+            ValidationException validationException)
+        {
+            var errors = validationException.Errors
+                .GroupBy(e => e.PropertyName)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(e => e.ErrorMessage).ToArray());
+
+            return new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation Error",
+                Detail = "One or more validation errors occurred.",
+                Instance = httpContext.Request.Path,
+                Extensions = { ["errors"] = errors }
+            };
         }
     }
 }

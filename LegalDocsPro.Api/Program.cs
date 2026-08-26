@@ -13,13 +13,34 @@ using LegalDocsPro.Infrastructure.Authentication;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using LegalDocsPro.Api.Services;
+using LegalDocsPro.Infrastructure.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- STARTUP CONFIGURATION VALIDATION (fail-fast) ---
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString) || connectionString == "CHANGE_ME")
+{
+    throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection is not configured. " +
+        "Set it via User Secrets (development) or environment variables (production). " +
+        "See README.md for setup instructions.");
+}
+
+var jwtSecret = builder.Configuration.GetSection("JwtSettings")["Secret"];
+if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret == "CHANGE_ME" || jwtSecret.Length < 32)
+{
+    throw new InvalidOperationException(
+        "JwtSettings:Secret is not configured or is too short (minimum 32 characters). " +
+        "Set it via User Secrets (development) or environment variables (production). " +
+        "See README.md for setup instructions.");
+}
+// --- END STARTUP VALIDATION ---
 
 // 1. Configurar Entity Framework Core con SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
+        connectionString,
         b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
 // 2. Inyección de Dependencias: Repositorios
@@ -34,6 +55,9 @@ builder.Services.AddHttpContextAccessor();
 
 // Registra nuestro servicio
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+// File storage service (private storage outside wwwroot)
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 // 3. Configurar MediatR y FluentValidation (NUEVO)
 var applicationAssembly = typeof(LegalDocsPro.Application.Features.Contracts.Commands.CreateContractCommand).Assembly;
@@ -122,22 +146,13 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// --- CÓDIGO PARA APLICAR MIGRACIONES AUTOMÁTICAMENTE EN AZURE ---
+// --- APPLY MIGRATIONS (fail-fast: no try/catch) ---
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<ApplicationDbContext>();
-        context.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Ocurrió un error al aplicar las migraciones a la base de datos.");
-    }
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    context.Database.Migrate();
 }
-// ----------------------------------------------------------------
+// --- END MIGRATIONS ---
 
 // 👇 AGREGA ESTO AQUÍ (Preferiblemente bien arriba) 👇
 app.UseExceptionHandler(opt => { });
@@ -153,7 +168,18 @@ app.UseExceptionHandler(opt => { });
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseStaticFiles(); // Permite a la API servir archivos físicos como PDFs o imágenes
+app.UseStaticFiles(new StaticFileOptions
+{
+    // Prevent serving files from /uploads/ — all document access must go
+    // through the authorized download endpoint (GET /api/files/download/{storedName}).
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.Context.Request.Path.StartsWithSegments("/uploads"))
+        {
+            ctx.Context.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+});
 
 app.UseHttpsRedirection();
 

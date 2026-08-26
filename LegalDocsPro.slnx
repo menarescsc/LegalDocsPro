@@ -1,7 +1,11 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/LegalDocsPro.Application.Tests/LegalDocsPro.Application.Tests.csproj" />
+  </Folder>
   <Project Path="LegalDocsPro.Api/LegalDocsPro.Api.csproj" />
   <Project Path="LegalDocsPro.Application/LegalDocsPro.Application.csproj" />
   <Project Path="LegalDocsPro.Domain/LegalDocsPro.Domain.csproj" />
   <Project Path="LegalDocsPro.Infrastructure/LegalDocsPro.Infrastructure.csproj" />
+  <Project Path="tests/LegalDocsPro.Api.Tests/LegalDocsPro.Api.Tests.csproj" />
   <Project Path="tests/LegalDocsPro.Domain.Tests/LegalDocsPro.Domain.Tests.csproj" />
 </Solution>
