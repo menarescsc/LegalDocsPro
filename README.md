@@ -9,6 +9,29 @@ Prerequisites:
 - .NET SDK 10.0
 - SQL Server or SQL Server Express for running the API locally
 
+### Secret Configuration
+
+The API requires two secrets that MUST be configured before it will start. The application performs fail-fast validation and will refuse to start with placeholder values.
+
+**Development (User Secrets):**
+
+```bash
+cd LegalDocsPro.Api
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=.\\SQLEXPRESS;Database=LegalDocsProDB;Trusted_Connection=True;TrustServerCertificate=True;"
+dotnet user-secrets set "JwtSettings:Secret" "Your-Super-Secret-JWT-Key-At-Least-32-Characters-Long!"
+```
+
+**Production (Environment Variables):**
+
+```bash
+export ConnectionStrings__DefaultConnection="Server=your-server;Database=LegalDocsProDB;User Id=your-user;Password=your-password;"
+export JwtSettings__Secret="Your-Production-Secret-Key-At-Least-32-Characters-Long!"
+```
+
+The `appsettings.json` file contains `CHANGE_ME` placeholders. Do not commit real secrets to source control.
+
+### Build and Test
+
 Build and test from the repository root:
 
 ```bash
