@@ -30,6 +30,22 @@ export JwtSettings__Secret="Your-Production-Secret-Key-At-Least-32-Characters-Lo
 
 The `appsettings.json` file contains `CHANGE_ME` placeholders. Do not commit real secrets to source control.
 
+### Docker Compose (Optional)
+
+To run the API with SQL Server using Docker:
+
+```bash
+# Copy the example files
+cp docker-compose.example.yml docker-compose.yml
+cp .env.example .env
+
+# Edit .env with your secrets (never commit this file)
+# Then start the containers
+docker compose up -d
+```
+
+The `.env` file is git-ignored. Never commit real credentials.
+
 ### Build and Test
 
 Build and test from the repository root:

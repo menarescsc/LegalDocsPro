@@ -1,0 +1,49 @@
+version: '3.8'
+
+# ============================================================
+# LegalDocsPro - Docker Compose Example
+# ============================================================
+# Copy this file to docker-compose.yml and fill in your values:
+#   cp docker-compose.example.yml docker-compose.yml
+#
+# Or use environment variables from a .env file (recommended).
+# See .env.example for the required variables.
+# ============================================================
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: legaldocspro_db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${MSSQL_SA_PASSWORD}
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - legal-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: legaldocspro_api
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=LegalDocsProDB;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;
+      - JwtSettings__Secret=${JWT_SECRET}
+    depends_on:
+      - sqlserver
+    networks:
+      - legal-network
+
+volumes:
+  mssql_data:
+
+networks:
+  legal-network:
+    driver: bridge

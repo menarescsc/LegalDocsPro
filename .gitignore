@@ -384,6 +384,10 @@ FodyWeavers.xsd
 **/appsettings.Local.json
 **/appsettings.*.local.json
 
+# Docker Compose with real credentials (use docker-compose.example.yml as template)
+docker-compose.yml
+!docker-compose.example.yml
+
 # Local logs and diagnostics
 logs/
 **/logs/
