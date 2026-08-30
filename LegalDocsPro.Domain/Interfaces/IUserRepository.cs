@@ -2,11 +2,14 @@
 
 namespace LegalDocsPro.Domain.Interfaces
 {
+    /// <summary>
+    /// Repository interface for User aggregate.
+    /// </summary>
     public interface IUserRepository
     {
-        // Necesitaremos buscar por email más adelante para el Login
         Task<User?> GetByEmailAsync(string email);
+        Task<User?> GetByIdAsync(int id);
         Task AddAsync(User user);
-        Task SaveChangesAsync();
+        void Update(User user);
     }
 }

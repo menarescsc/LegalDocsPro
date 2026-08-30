@@ -1,6 +1,7 @@
 using FluentAssertions;
 using LegalDocsPro.Domain.Entities;
 using LegalDocsPro.Domain.Enums;
+using LegalDocsPro.Domain.Exceptions;
 
 namespace LegalDocsPro.Domain.Tests.Entities;
 
@@ -14,6 +15,7 @@ public class ContractTests
         var contract = new Contract(
             "Master Services Agreement",
             "Agreement description",
+            "Client Name",
             "/documents/msa.pdf",
             expirationDate);
 
@@ -21,7 +23,7 @@ public class ContractTests
         contract.Description.Should().Be("Agreement description");
         contract.DocumentUrl.Should().Be("/documents/msa.pdf");
         contract.ExpirationDate.Should().Be(expirationDate);
-        contract.ClientName.Should().BeEmpty();
+        contract.ClientName.Should().Be("Client Name");
         contract.Status.Should().Be(ContractStatus.Draft);
     }
 
@@ -32,11 +34,11 @@ public class ContractTests
     [InlineData("\t")]
     public void Constructor_ShouldRejectBlankTitle(string? title)
     {
-        var act = () => new Contract(title!, "Description", "document.pdf", null);
+        var act = () => new Contract(title!, "Description", "Client", "document.pdf", null);
 
         act.Should()
-            .Throw<ArgumentException>()
-            .WithMessage("El título del contrato es obligatorio.");
+            .Throw<DomainException>()
+            .WithMessage("Contract title is required.");
     }
 
     [Fact]
@@ -57,8 +59,8 @@ public class ContractTests
         var act = () => contract.SendToReview();
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("Solo los borradores pueden enviarse a revisión.");
+            .Throw<DomainException>()
+            .WithMessage("Only draft contracts can be sent to review.");
         contract.Status.Should().Be(ContractStatus.InReview);
     }
 
@@ -70,8 +72,8 @@ public class ContractTests
         var act = () => contract.SendToReview();
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("Solo los borradores pueden enviarse a revisión.");
+            .Throw<DomainException>()
+            .WithMessage("Only draft contracts can be sent to review.");
         contract.Status.Should().Be(ContractStatus.Approved);
     }
 
@@ -83,8 +85,8 @@ public class ContractTests
         var act = () => contract.SendToReview();
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("Solo los borradores pueden enviarse a revisión.");
+            .Throw<DomainException>()
+            .WithMessage("Only draft contracts can be sent to review.");
         contract.Status.Should().Be(ContractStatus.Active);
     }
 
@@ -106,8 +108,8 @@ public class ContractTests
         var act = () => contract.Approve();
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("Solo los contratos en revisión pueden ser aprobados.");
+            .Throw<DomainException>()
+            .WithMessage("Only contracts in review can be approved.");
         contract.Status.Should().Be(ContractStatus.Draft);
     }
 
@@ -119,8 +121,8 @@ public class ContractTests
         var act = () => contract.Approve();
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("Solo los contratos en revisión pueden ser aprobados.");
+            .Throw<DomainException>()
+            .WithMessage("Only contracts in review can be approved.");
         contract.Status.Should().Be(ContractStatus.Approved);
     }
 
@@ -132,8 +134,8 @@ public class ContractTests
         var act = () => contract.Approve();
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("Solo los contratos en revisión pueden ser aprobados.");
+            .Throw<DomainException>()
+            .WithMessage("Only contracts in review can be approved.");
         contract.Status.Should().Be(ContractStatus.Active);
     }
 
@@ -155,8 +157,8 @@ public class ContractTests
         var act = () => contract.Activate();
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("El contrato debe estar aprobado antes de activarse.");
+            .Throw<DomainException>()
+            .WithMessage("Contract must be approved before activation.");
         contract.Status.Should().Be(ContractStatus.Draft);
     }
 
@@ -168,8 +170,8 @@ public class ContractTests
         var act = () => contract.Activate();
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("El contrato debe estar aprobado antes de activarse.");
+            .Throw<DomainException>()
+            .WithMessage("Contract must be approved before activation.");
         contract.Status.Should().Be(ContractStatus.InReview);
     }
 
@@ -181,8 +183,8 @@ public class ContractTests
         var act = () => contract.Activate();
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("El contrato debe estar aprobado antes de activarse.");
+            .Throw<DomainException>()
+            .WithMessage("Contract must be approved before activation.");
         contract.Status.Should().Be(ContractStatus.Active);
     }
 
@@ -227,8 +229,8 @@ public class ContractTests
         var act = () => contract.UpdateDetails("Updated title", "Updated description");
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("No se pueden modificar los detalles de un contrato activo o expirado.");
+            .Throw<DomainException>()
+            .WithMessage("Cannot modify details of an active or expired contract.");
         contract.Title.Should().Be("Title");
         contract.Description.Should().Be("Description");
     }
@@ -254,8 +256,8 @@ public class ContractTests
         var act = () => contract.AttachDocument(documentUrl!);
 
         act.Should()
-            .Throw<ArgumentException>()
-            .WithMessage("La URL del documento es obligatoria.");
+            .Throw<DomainException>()
+            .WithMessage("Document URL is required.");
     }
 
     [Fact]
@@ -266,8 +268,8 @@ public class ContractTests
         var act = () => contract.AttachDocument("/documents/updated.pdf");
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("Solo se pueden adjuntar documentos a contratos en estado Borrador.");
+            .Throw<DomainException>()
+            .WithMessage("Documents can only be attached to draft contracts.");
     }
 
     [Fact]
@@ -278,8 +280,8 @@ public class ContractTests
         var act = () => contract.AttachDocument("/documents/updated.pdf");
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("Solo se pueden adjuntar documentos a contratos en estado Borrador.");
+            .Throw<DomainException>()
+            .WithMessage("Documents can only be attached to draft contracts.");
     }
 
     [Fact]
@@ -290,12 +292,12 @@ public class ContractTests
         var act = () => contract.AttachDocument("/documents/updated.pdf");
 
         act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("Solo se pueden adjuntar documentos a contratos en estado Borrador.");
+            .Throw<DomainException>()
+            .WithMessage("Documents can only be attached to draft contracts.");
     }
 
     private static Contract CreateContract() =>
-        new("Title", "Description", "document.pdf", null);
+        new("Title", "Description", "Client", "document.pdf", null);
 
     private static Contract CreateInReviewContract()
     {

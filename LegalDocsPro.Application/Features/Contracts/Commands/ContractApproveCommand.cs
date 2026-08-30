@@ -1,9 +1,7 @@
-﻿using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using LegalDocsPro.Application.Common.Models;
+using MediatR;
 
 namespace LegalDocsPro.Application.Features.Contracts.Commands
 {
-    public record ContractApproveCommand(int Id) : IRequest<bool>;
+    public record ContractApproveCommand(int Id) : IRequest<Result>;
 }

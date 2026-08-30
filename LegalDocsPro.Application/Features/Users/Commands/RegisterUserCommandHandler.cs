@@ -1,49 +1,56 @@
-﻿using LegalDocsPro.Application.Features.Users.Commands;
+﻿using LegalDocsPro.Application.Common.Interfaces;
+using LegalDocsPro.Application.Common.Models;
 using LegalDocsPro.Domain.Entities;
-using LegalDocsPro.Domain.Interfaces;
+using LegalDocsPro.Domain.Exceptions;
 using MediatR;
-using BCrypt.Net;
 
 namespace LegalDocsPro.Application.Features.Users.Commands
 {
-    public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, int>
+    public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Result<int>>
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
         // Default role ID assigned to all self-registered users (prevents privilege escalation)
         private const int DefaultRoleId = 1;
 
-        public RegisterUserCommandHandler(IUserRepository userRepository)
+        public RegisterUserCommandHandler(IUnitOfWork unitOfWork)
         {
-            _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
         }
 
-        public async Task<int> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+        public async Task<Result<int>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
-            // 1. Check if email already exists
-            var existingUser = await _userRepository.GetByEmailAsync(request.Email);
-            if (existingUser != null)
+            try
             {
-                throw new InvalidOperationException("A user with this email address already exists.");
+                // 1. Check if email already exists
+                var existingUser = await _unitOfWork.Users.GetByEmailAsync(request.Email);
+                if (existingUser != null)
+                {
+                    return Result<int>.Failure("A user with this email address already exists.", "DUPLICATE_EMAIL");
+                }
+
+                // 2. Hash password using BCrypt (generates random salt automatically)
+                string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+                // 3. Create domain entity with server-assigned default role
+                var newUser = new User(
+                    request.FirstName,
+                    request.LastName,
+                    request.Email,
+                    passwordHash,
+                    DefaultRoleId
+                );
+
+                // 4. Persist to database
+                await _unitOfWork.Users.AddAsync(newUser);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                return Result<int>.Success(newUser.Id);
             }
-
-            // 2. Hash password using BCrypt (generates random salt automatically)
-            string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-
-            // 3. Create domain entity with server-assigned default role
-            var newUser = new User(
-                request.FirstName,
-                request.LastName,
-                request.Email,
-                passwordHash,
-                DefaultRoleId
-            );
-
-            // 4. Persist to database
-            await _userRepository.AddAsync(newUser);
-            await _userRepository.SaveChangesAsync();
-
-            return newUser.Id;
+            catch (DomainException ex)
+            {
+                return Result<int>.Failure(ex.Message, "DOMAIN_ERROR");
+            }
         }
     }
 }

@@ -21,64 +21,78 @@ namespace LegalDocsPro.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateContract([FromBody] CreateContractCommand command)
         {
-            // El controlador no sabe NADA de reglas de negocio ni de bases de datos.
-            // Solo delega el comando a MediatR.
-            var contractId = await _mediator.Send(command);
+            var result = await _mediator.Send(command);
 
-            return CreatedAtAction(nameof(CreateContract), new { id = contractId }, contractId);
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+            return CreatedAtAction(nameof(CreateContract), new { id = result.Value }, result.Value);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetContractById(int id)
         {
-            // Construimos la pregunta (Query)
             var query = new GetContractByIdQuery(id);
-
-            // MediatR busca automáticamente al Handler para que haga el trabajo
             var result = await _mediator.Send(query);
 
             if (result == null)
-                return NotFound($"No se encontró el contrato con el ID {id}.");
+                return NotFound(new { error = $"Contract with ID {id} not found." });
 
             return Ok(result);
         }
+
         [HttpGet("paged")]
         public async Task<IActionResult> GetPaged([FromQuery] GetContractsWithPaginationQuery query)
         {
-            // Gracias a [FromQuery], la API tomará los valores de la URL:
-            // Ejemplo: /api/Contracts/paged?pageNumber=1&pageSize=5&searchTerm=arriendo
             var result = await _mediator.Send(query);
             return Ok(result);
         }
+
         [HttpPatch("{id}/send-to-review")]
         public async Task<IActionResult> SendToReview(int id)
         {
-            await _mediator.Send(new SendContractToReviewCommand(id));
+            var result = await _mediator.Send(new SendContractToReviewCommand(id));
+
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
             return NoContent();
         }
 
-        [HttpPatch("{id}/Approve")]
+        [HttpPatch("{id}/approve")]
         public async Task<IActionResult> Approve(int id)
         {
-            await _mediator.Send(new ContractApproveCommand(id));
+            var result = await _mediator.Send(new ContractApproveCommand(id));
+
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
             return NoContent();
         }
 
-        [HttpPatch("{id}/Activate")]
+        [HttpPatch("{id}/activate")]
         public async Task<IActionResult> Activate(int id)
         {
-            await _mediator.Send(new ContractActivateCommand(id));
+            var result = await _mediator.Send(new ContractActivateCommand(id));
+
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
             return NoContent();
         }
+
         [HttpPatch("{id}/attach-document")]
         public async Task<IActionResult> AttachDocument(int id, [FromBody] AttachDocumentRequest request)
         {
-            await _mediator.Send(new AttachContractDocumentCommand(id, request.DocumentUrl));
+            var result = await _mediator.Send(new AttachContractDocumentCommand(id, request.DocumentUrl));
+
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
             return NoContent();
         }
     }
 
-    // Añade esto fuera de tu controlador o dentro de tu namespace
     public class AttachDocumentRequest
     {
         public string DocumentUrl { get; set; } = string.Empty;

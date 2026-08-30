@@ -185,6 +185,52 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/):
 - `test:` for adding tests
 - `chore:` for maintenance tasks
 
+## Troubleshooting
+
+### "ConnectionStrings:DefaultConnection is not configured"
+
+The app refuses to start with placeholder values. Configure the connection string using one of these methods:
+
+**Development (User Secrets):**
+```bash
+cd LegalDocsPro.Api
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=.\\SQLEXPRESS;Database=LegalDocsProDB;Trusted_Connection=True;TrustServerCertificate=True;"
+```
+
+**Docker:**
+Ensure your `.env` file has `MSSQL_SA_PASSWORD` set (minimum 8 characters, complexity requirements).
+
+**Environment Variables:**
+```bash
+export ConnectionStrings__DefaultConnection="Server=your-server;Database=LegalDocsProDB;User Id=your-user;Password=your-password;"
+```
+
+### "JwtSettings:Secret is not configured or is too short"
+
+The JWT secret must be at least 32 characters. Generate one:
+
+```bash
+# PowerShell
+-join ((65..90) + (97..122) + (48..57) | Get-Random -Count 48 | % {[char]$_})
+
+# Or use User Secrets
+cd LegalDocsPro.Api
+dotnet user-secrets set "JwtSettings:Secret" "Your-Super-Secret-JWT-Key-At-Least-32-Characters-Long!"
+```
+
+### SQL Server connection refused
+
+- **Docker**: Ensure the `sqlserver` container is running (`docker compose ps`). The API container waits for it via `depends_on`.
+- **Local**: Verify SQL Server Express is running and the instance name is correct (`.\\SQLEXPRESS` for default named instance).
+- **Remote**: Check firewall rules allow port 1433 and the server accepts remote connections.
+
+### Migrations fail on startup
+
+The app applies migrations automatically on startup (fail-fast). If migrations fail:
+- Verify the SQL Server user has `CREATE TABLE` and `ALTER` permissions
+- Check that the database doesn't have conflicting schema from a previous version
+- For a clean start: drop the database and restart the app
+
 ## Current Limitations
 
 - Only the Domain test layer exists; coverage percentages are not asserted or published as a quality gate

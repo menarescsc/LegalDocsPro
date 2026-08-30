@@ -1,14 +1,13 @@
-﻿using MediatR;
+﻿using LegalDocsPro.Application.Common.Models;
+using MediatR;
 
 namespace LegalDocsPro.Application.Features.Contracts.Commands
 {
-    // 1. Asegúrate de que diga "public class"
-    public class AttachContractDocumentCommand : IRequest<Unit>
+    public class AttachContractDocumentCommand : IRequest<Result>
     {
         public int ContractId { get; set; }
-        public string DocumentUrl { get; set; }
+        public string DocumentUrl { get; set; } = string.Empty;
 
-        // 2. Asegúrate de que el constructor diga "public"
         public AttachContractDocumentCommand(int contractId, string documentUrl)
         {
             ContractId = contractId;

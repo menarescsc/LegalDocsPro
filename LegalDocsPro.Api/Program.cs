@@ -1,19 +1,22 @@
 using FluentValidation;
 using LegalDocsPro.Api.Middlewares;
-using LegalDocsPro.Application.Common.Behaviours;
-using LegalDocsPro.Domain.Interfaces;
-using LegalDocsPro.Infrastructure.Persistence.Contexts;
-using LegalDocsPro.Infrastructure.Persistence.Repositories;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using LegalDocsPro.Application.Common.Interfaces;
-using LegalDocsPro.Infrastructure.Authentication;
-using System.Text;
-using Microsoft.OpenApi.Models;
 using LegalDocsPro.Api.Services;
+using LegalDocsPro.Application.Common.Behaviours;
+using LegalDocsPro.Application.Common.Interfaces;
+using LegalDocsPro.Domain.Interfaces;
+using LegalDocsPro.Infrastructure.Authentication;
+using LegalDocsPro.Infrastructure.Events;
+using LegalDocsPro.Infrastructure.Persistence;
+using LegalDocsPro.Infrastructure.Persistence.Contexts;
+using LegalDocsPro.Infrastructure.Persistence.Interceptors;
+using LegalDocsPro.Infrastructure.Persistence.Repositories;
 using LegalDocsPro.Infrastructure.Storage;
+using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,41 +40,61 @@ if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret == "CHANGE_ME" || jwtSecre
 }
 // --- END STARTUP VALIDATION ---
 
-// 1. Configurar Entity Framework Core con SQL Server
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+// --- INFRASTRUCTURE SERVICES ---
+
+// TimeProvider for audit fields
+builder.Services.AddSingleton(TimeProvider.System);
+
+// Auditable Entity Interceptor
+builder.Services.AddScoped<AuditableEntityInterceptor>();
+
+// Entity Framework Core with SQL Server
+builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
+{
+    var interceptor = sp.GetRequiredService<AuditableEntityInterceptor>();
+    options.AddInterceptors(interceptor);
     options.UseSqlServer(
         connectionString,
-        b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+        b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
+});
 
-// 2. Inyección de Dependencias: Repositorios
+// Repositories
 builder.Services.AddScoped<IContractRepository, ContractRepository>();
-
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
+// Unit of Work
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Domain Event Dispatcher
+builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+
+// Authentication
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
-// Permite acceder al contexto HTTP (Request, Headers, etc.)
+// HTTP Context Accessor
 builder.Services.AddHttpContextAccessor();
 
-// Registra nuestro servicio
+// Current User Service
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-// File storage service (private storage outside wwwroot)
+// File Storage Service
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
-// 3. Configurar MediatR y FluentValidation (NUEVO)
+// --- APPLICATION SERVICES ---
+
 var applicationAssembly = typeof(LegalDocsPro.Application.Features.Contracts.Commands.CreateContractCommand).Assembly;
 
-builder.Services.AddMediatR(cfg => {
+// MediatR with Validation Behavior
+builder.Services.AddMediatR(cfg =>
+{
     cfg.RegisterServicesFromAssembly(applicationAssembly);
-    // Agregamos el guardia de seguridad al pipeline de MediatR
     cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
 });
 
-// Registramos todos los validadores que existan en la capa de Aplicación
+// FluentValidation
 builder.Services.AddValidatorsFromAssembly(applicationAssembly);
 
-// --- CONFIGURACIÓN DE JWT ---
+// --- JWT AUTHENTICATION ---
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings["Secret"]!);
 
@@ -93,8 +116,8 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(secretKey)
     };
 });
-// ----------------------------
 
+// --- API SERVICES ---
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -104,7 +127,7 @@ builder.Services.AddSwaggerGen(c =>
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Autorización JWT usando el esquema Bearer. Escribe 'Bearer' [espacio] y luego tu token.",
+        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
@@ -130,48 +153,43 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// 👇 AGREGA ESTA CONFIGURACIÓN DE CORS 👇
+// CORS Configuration
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowWebApp", builder =>
+    options.AddPolicy("AllowWebApp", policy =>
     {
-        builder.AllowAnyOrigin()    // Permite conexiones desde cualquier dominio local (luego en prod se restringe)
-               .AllowAnyHeader()    // Permite enviar cualquier tipo de dato (incluyendo tokens de autorización)
-               .AllowAnyMethod();   // Permite usar GET, POST, PUT, PATCH, DELETE
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? new[] { "https://localhost:3000", "https://localhost:5173" };
+
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
+// Exception Handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// --- APPLY MIGRATIONS (fail-fast: no try/catch) ---
+// --- APPLY MIGRATIONS (fail-fast) ---
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     context.Database.Migrate();
 }
-// --- END MIGRATIONS ---
 
-// 👇 AGREGA ESTO AQUÍ (Preferiblemente bien arriba) 👇
+// --- MIDDLEWARE PIPELINE ---
+
 app.UseExceptionHandler(opt => { });
-
-
-
-//if (app.Environment.IsDevelopment())
-//{
-//    app.UseSwagger();
-//    app.UseSwaggerUI();
-//}
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseStaticFiles(new StaticFileOptions
 {
-    // Prevent serving files from /uploads/ — all document access must go
-    // through the authorized download endpoint (GET /api/files/download/{storedName}).
     OnPrepareResponse = ctx =>
     {
         if (ctx.Context.Request.Path.StartsWithSegments("/uploads"))
@@ -182,14 +200,11 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseHttpsRedirection();
-
-// 👇 ACTIVA CORS AQUÍ (Antes de la Autenticación) 👇
 app.UseCors("AllowWebApp");
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Redirigir la ruta raíz a Swagger
+// Redirect root to Swagger
 app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.MapControllers();

@@ -1,9 +1,13 @@
 ﻿using FluentValidation;
+using LegalDocsPro.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalDocsPro.Api.Middlewares
 {
+    /// <summary>
+    /// Global exception handler that maps exceptions to appropriate HTTP responses.
+    /// </summary>
     public class GlobalExceptionHandler : IExceptionHandler
     {
         private readonly ILogger<GlobalExceptionHandler> _logger;
@@ -23,10 +27,15 @@ namespace LegalDocsPro.Api.Middlewares
             var problemDetails = exception switch
             {
                 ValidationException validationEx => CreateValidationProblemDetails(httpContext, validationEx),
+                DomainException domainEx => CreateProblemDetails(
+                    httpContext,
+                    StatusCodes.Status400BadRequest,
+                    "Domain Rule Violation",
+                    domainEx.Message),
                 UnauthorizedAccessException => CreateProblemDetails(
                     httpContext,
-                    StatusCodes.Status403Forbidden,
-                    "Forbidden",
+                    StatusCodes.Status401Unauthorized,
+                    "Unauthorized",
                     "You do not have permission to perform this operation."),
                 KeyNotFoundException => CreateProblemDetails(
                     httpContext,
@@ -36,7 +45,7 @@ namespace LegalDocsPro.Api.Middlewares
                 InvalidOperationException => CreateProblemDetails(
                     httpContext,
                     StatusCodes.Status400BadRequest,
-                    "Business Rule Violation",
+                    "Bad Request",
                     exception.Message),
                 _ => CreateProblemDetails(
                     httpContext,

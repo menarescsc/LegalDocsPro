@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LegalDocsPro.Infrastructure.Persistence.Repositories
 {
+    /// <summary>
+    /// Repository implementation for Contract aggregate.
+    /// </summary>
     public class ContractRepository : IContractRepository
     {
         private readonly ApplicationDbContext _context;
@@ -27,23 +30,11 @@ namespace LegalDocsPro.Infrastructure.Persistence.Repositories
         public async Task AddAsync(Contract contract)
         {
             await _context.Contracts.AddAsync(contract);
-            await _context.SaveChangesAsync();
         }
 
         public void Update(Contract contract)
         {
             _context.Contracts.Update(contract);
-        }
-
-        public async Task UpdateAsync(Contract contract)
-        {
-            _context.Contracts.Update(contract);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
         }
 
         public async Task<(IEnumerable<Contract> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm)

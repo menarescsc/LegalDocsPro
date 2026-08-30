@@ -1,48 +1,32 @@
-﻿using LegalDocsPro.Application.Common.Interfaces;
-using LegalDocsPro.Domain.Common;
+﻿using LegalDocsPro.Domain.Common;
 using LegalDocsPro.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace LegalDocsPro.Infrastructure.Persistence.Contexts
 {
+    /// <summary>
+    /// Application database context.
+    /// </summary>
     public class ApplicationDbContext : DbContext
     {
-        private readonly ICurrentUserService _currentUserService;
-
-        // Inyectamos ICurrentUserService en el constructor
-        public ApplicationDbContext(
-            DbContextOptions<ApplicationDbContext> options,
-            ICurrentUserService currentUserService) : base(options)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
         {
-            _currentUserService = currentUserService;
         }
 
-        public DbSet<Contract> Contracts { get; set; }
-        public DbSet<Role> Roles { get; set; }
-        public DbSet<User> Users { get; set; }
+        public DbSet<Contract> Contracts => Set<Contract>();
+        public DbSet<Role> Roles => Set<Role>();
+        public DbSet<User> Users => Set<User>();
 
-        // Sobrescribimos el método de guardado
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Recorremos todas las entidades que heredan de BaseEntity y que hayan sido modificadas o agregadas
-            foreach (var entry in ChangeTracker.Entries<BaseEntity>())
-            {
-                switch (entry.State)
-                {
-                    case EntityState.Added:
-                        // Usamos .Property().CurrentValue porque las propiedades tienen "protected set"
-                        entry.Property(x => x.CreatedAt).CurrentValue = DateTime.UtcNow;
-                        entry.Property(x => x.CreatedBy).CurrentValue = _currentUserService.UserId ?? "Sistema";
-                        break;
+            base.OnModelCreating(modelBuilder);
 
-                    case EntityState.Modified:
-                        entry.Property(x => x.LastModifiedAt).CurrentValue = DateTime.UtcNow;
-                        entry.Property(x => x.LastModifiedBy).CurrentValue = _currentUserService.UserId ?? "Sistema";
-                        break;
-                }
-            }
+            // Ignore domain events — they are not persisted
+            modelBuilder.Ignore<DomainEvent>();
 
-            return await base.SaveChangesAsync(cancellationToken);
+            // Apply all configurations from the assembly
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         }
     }
 }

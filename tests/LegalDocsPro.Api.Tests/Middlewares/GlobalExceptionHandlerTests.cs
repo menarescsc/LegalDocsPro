@@ -46,7 +46,7 @@ public class GlobalExceptionHandlerTests
     }
 
     [Fact]
-    public async Task TryHandleAsync_UnauthorizedAccessException_Returns403()
+    public async Task TryHandleAsync_UnauthorizedAccessException_Returns401()
     {
         var exception = new UnauthorizedAccessException("Access denied to resource.");
         var httpContext = CreateHttpContext();
@@ -54,11 +54,11 @@ public class GlobalExceptionHandlerTests
         var result = await _handler.TryHandleAsync(httpContext, exception, CancellationToken.None);
 
         result.Should().BeTrue();
-        httpContext.Response.StatusCode.Should().Be(403);
+        httpContext.Response.StatusCode.Should().Be(401);
 
         var body = await ReadProblemDetails(httpContext);
-        body.Status.Should().Be(403);
-        body.Title.Should().Be("Forbidden");
+        body.Status.Should().Be(401);
+        body.Title.Should().Be("Unauthorized");
         body.Detail.Should().Be("You do not have permission to perform this operation.");
     }
 
@@ -92,7 +92,7 @@ public class GlobalExceptionHandlerTests
 
         var body = await ReadProblemDetails(httpContext);
         body.Status.Should().Be(400);
-        body.Title.Should().Be("Business Rule Violation");
+        body.Title.Should().Be("Bad Request");
         body.Detail.Should().Be("Only draft contracts can be sent to review.");
     }
 

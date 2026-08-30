@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using LegalDocsPro.Application.Common.Models;
+using MediatR;
 
 namespace LegalDocsPro.Application.Features.Users.Commands
 {
@@ -10,5 +11,5 @@ namespace LegalDocsPro.Application.Features.Users.Commands
         string FirstName,
         string LastName,
         string Email,
-        string Password) : IRequest<int>;
+        string Password) : IRequest<Result<int>>;
 }

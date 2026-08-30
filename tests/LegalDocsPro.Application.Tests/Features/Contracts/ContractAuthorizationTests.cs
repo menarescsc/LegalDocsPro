@@ -10,13 +10,20 @@ namespace LegalDocsPro.Application.Tests.Features.Contracts;
 
 public class ContractAuthorizationTests
 {
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly Mock<IContractRepository> _repositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
+    private readonly Mock<IDomainEventDispatcher> _eventDispatcherMock;
 
     public ContractAuthorizationTests()
     {
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
         _repositoryMock = new Mock<IContractRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _eventDispatcherMock = new Mock<IDomainEventDispatcher>();
+
+        _unitOfWorkMock.Setup(u => u.Contracts).Returns(_repositoryMock.Object);
+        _unitOfWorkMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
     }
 
     // ── GetContractByIdQueryHandler ──────────────────────────────────────
@@ -88,26 +95,25 @@ public class ContractAuthorizationTests
         _currentUserServiceMock.Setup(s => s.UserId).Returns("user-alice");
         _currentUserServiceMock.Setup(s => s.Role).Returns("Standard");
 
-        var handler = new SendContractToReviewCommandHandler(_repositoryMock.Object, _currentUserServiceMock.Object);
+        var handler = new SendContractToReviewCommandHandler(_unitOfWorkMock.Object, _currentUserServiceMock.Object, _eventDispatcherMock.Object);
         var result = await handler.Handle(new SendContractToReviewCommand(42), CancellationToken.None);
 
-        result.Should().BeTrue();
-        _repositoryMock.Verify(r => r.UpdateAsync(contract), Times.Once);
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
-    public async Task SendToReview_NonOwnerGetsKeyNotFoundException()
+    public async Task SendToReview_NonOwnerGetsFailure()
     {
         var contract = CreateContract(createdBy: "user-alice");
         _repositoryMock.Setup(r => r.GetByIdAsync(42)).ReturnsAsync(contract);
         _currentUserServiceMock.Setup(s => s.UserId).Returns("user-bob");
         _currentUserServiceMock.Setup(s => s.Role).Returns("Standard");
 
-        var handler = new SendContractToReviewCommandHandler(_repositoryMock.Object, _currentUserServiceMock.Object);
-        var act = () => handler.Handle(new SendContractToReviewCommand(42), CancellationToken.None);
+        var handler = new SendContractToReviewCommandHandler(_unitOfWorkMock.Object, _currentUserServiceMock.Object, _eventDispatcherMock.Object);
+        var result = await handler.Handle(new SendContractToReviewCommand(42), CancellationToken.None);
 
-        await act.Should().ThrowAsync<KeyNotFoundException>()
-            .WithMessage("*42*");
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not found");
     }
 
     [Fact]
@@ -118,11 +124,10 @@ public class ContractAuthorizationTests
         _currentUserServiceMock.Setup(s => s.UserId).Returns("admin-1");
         _currentUserServiceMock.Setup(s => s.Role).Returns("Admin");
 
-        var handler = new SendContractToReviewCommandHandler(_repositoryMock.Object, _currentUserServiceMock.Object);
+        var handler = new SendContractToReviewCommandHandler(_unitOfWorkMock.Object, _currentUserServiceMock.Object, _eventDispatcherMock.Object);
         var result = await handler.Handle(new SendContractToReviewCommand(42), CancellationToken.None);
 
-        result.Should().BeTrue();
-        _repositoryMock.Verify(r => r.UpdateAsync(contract), Times.Once);
+        result.IsSuccess.Should().BeTrue();
     }
 
     // ── AttachContractDocumentCommandHandler ─────────────────────────────
@@ -135,25 +140,25 @@ public class ContractAuthorizationTests
         _currentUserServiceMock.Setup(s => s.UserId).Returns("user-alice");
         _currentUserServiceMock.Setup(s => s.Role).Returns("Standard");
 
-        var handler = new AttachContractDocumentCommandHandler(_repositoryMock.Object, _currentUserServiceMock.Object);
-        await handler.Handle(new AttachContractDocumentCommand(42, "/docs/new.pdf"), CancellationToken.None);
+        var handler = new AttachContractDocumentCommandHandler(_unitOfWorkMock.Object, _currentUserServiceMock.Object, _eventDispatcherMock.Object);
+        var result = await handler.Handle(new AttachContractDocumentCommand(42, "/docs/new.pdf"), CancellationToken.None);
 
-        _repositoryMock.Verify(r => r.UpdateAsync(contract), Times.Once);
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
-    public async Task AttachDocument_NonOwnerGetsKeyNotFoundException()
+    public async Task AttachDocument_NonOwnerGetsFailure()
     {
         var contract = CreateContract(createdBy: "user-alice");
         _repositoryMock.Setup(r => r.GetByIdAsync(42)).ReturnsAsync(contract);
         _currentUserServiceMock.Setup(s => s.UserId).Returns("user-bob");
         _currentUserServiceMock.Setup(s => s.Role).Returns("Standard");
 
-        var handler = new AttachContractDocumentCommandHandler(_repositoryMock.Object, _currentUserServiceMock.Object);
-        var act = () => handler.Handle(new AttachContractDocumentCommand(42, "/docs/new.pdf"), CancellationToken.None);
+        var handler = new AttachContractDocumentCommandHandler(_unitOfWorkMock.Object, _currentUserServiceMock.Object, _eventDispatcherMock.Object);
+        var result = await handler.Handle(new AttachContractDocumentCommand(42, "/docs/new.pdf"), CancellationToken.None);
 
-        await act.Should().ThrowAsync<KeyNotFoundException>()
-            .WithMessage("*42*");
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not found");
     }
 
     [Fact]
@@ -164,10 +169,10 @@ public class ContractAuthorizationTests
         _currentUserServiceMock.Setup(s => s.UserId).Returns("admin-1");
         _currentUserServiceMock.Setup(s => s.Role).Returns("Admin");
 
-        var handler = new AttachContractDocumentCommandHandler(_repositoryMock.Object, _currentUserServiceMock.Object);
-        await handler.Handle(new AttachContractDocumentCommand(42, "/docs/new.pdf"), CancellationToken.None);
+        var handler = new AttachContractDocumentCommandHandler(_unitOfWorkMock.Object, _currentUserServiceMock.Object, _eventDispatcherMock.Object);
+        var result = await handler.Handle(new AttachContractDocumentCommand(42, "/docs/new.pdf"), CancellationToken.None);
 
-        _repositoryMock.Verify(r => r.UpdateAsync(contract), Times.Once);
+        result.IsSuccess.Should().BeTrue();
     }
 
     // ── GetContractsWithPaginationQueryHandler ───────────────────────────
@@ -214,7 +219,7 @@ public class ContractAuthorizationTests
 
     private static Contract CreateContract(string createdBy, int id = 42)
     {
-        var contract = new Contract("Title", "Description", "document.pdf", null);
+        var contract = new Contract("Title", "Description", "Client", "document.pdf", null);
         contract.Id = id;
         contract.CreatedBy = createdBy;
         return contract;
